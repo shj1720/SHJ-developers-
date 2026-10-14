@@ -1,0 +1,8 @@
+{
+  "name": " SHJ🤍",
+  "description": "Immersive music player with built-in Equalizer, Lo-Fi tuner, Reverb effects, custom sound presets, Spotify playlist export \u0026 batch downloader, cloud sync, and customizable UI themes and blurred background themes according to song cover and RGB lights strip near the phone border according to the beats of music.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
