@@ -7,4 +7,5 @@
     <string name="nav_spotify">Spotify Hub</string>
     <string name="nav_cloud">Cloud Sync</string>
     <string name="nav_themes">Themes</string>
+    <string name="default_web_client_id" translatable="false">1039093508346-etj2gugk0inp7of0ae2lt641scldhcb5.apps.googleusercontent.com</string>
 </resources>

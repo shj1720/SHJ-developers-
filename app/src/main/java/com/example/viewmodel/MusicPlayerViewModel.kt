@@ -6,8 +6,10 @@ import androidx.lifecycle.viewModelScope
 import com.example.audio.SyntheticAudioEngine
 import com.example.audio.VisualizerFrame
 import com.example.data.CloudSyncManager
+import com.example.data.FirebaseCloudSyncRepository
 import com.example.data.OfflineDownloadManager
 import com.example.data.StorageStats
+import com.google.firebase.auth.FirebaseUser
 import com.example.model.DefaultSoundPresets
 import com.example.data.ExportFormat
 import com.example.data.SampleMusicRepository
@@ -49,6 +51,14 @@ class MusicPlayerViewModel(application: Application) : AndroidViewModel(applicat
     val spotifyManager = SpotifyManager(application)
     val cloudSyncManager = CloudSyncManager()
     val offlineDownloadManager = OfflineDownloadManager(application)
+    val firebaseCloudSyncRepository = FirebaseCloudSyncRepository(application)
+
+    // Firebase Auth & Cloud Sync State
+    val firebaseUser: StateFlow<FirebaseUser?> = firebaseCloudSyncRepository.currentUser
+    private val _firebaseSyncMessage = MutableStateFlow<String?>(null)
+    val firebaseSyncMessage: StateFlow<String?> = _firebaseSyncMessage.asStateFlow()
+    private val _isFirebaseSyncing = MutableStateFlow(false)
+    val isFirebaseSyncing: StateFlow<Boolean> = _isFirebaseSyncing.asStateFlow()
 
     // Offline Mode & Downloads State
     val isOfflineModeForced: StateFlow<Boolean> = offlineDownloadManager.isOfflineModeForced
@@ -535,6 +545,79 @@ class MusicPlayerViewModel(application: Application) : AndroidViewModel(applicat
 
     fun generateNewCloudSyncCode() {
         cloudSyncManager.generateNewSyncCode()
+    }
+
+    // Firebase Authentication & Cloud Database Sync Actions
+    fun signInWithGoogle(idToken: String, onResult: (Boolean, String?) -> Unit) {
+        viewModelScope.launch {
+            _isFirebaseSyncing.value = true
+            val result = firebaseCloudSyncRepository.signInWithGoogleCredential(idToken)
+            _isFirebaseSyncing.value = false
+            if (result.isSuccess) {
+                _firebaseSyncMessage.value = "Signed in as ${result.getOrNull()?.displayName ?: "Google User"}"
+                onResult(true, null)
+                pushPlaylistsToFirebase()
+            } else {
+                val err = result.exceptionOrNull()?.message ?: "Google Sign-in failed"
+                _firebaseSyncMessage.value = "Sign-in error: $err"
+                onResult(false, err)
+            }
+        }
+    }
+
+    fun signOutFirebase() {
+        firebaseCloudSyncRepository.signOut()
+        _firebaseSyncMessage.value = "Signed out from Google Cloud"
+    }
+
+    fun dismissFirebaseSyncMessage() {
+        _firebaseSyncMessage.value = null
+    }
+
+    fun pushPlaylistsToFirebase() {
+        viewModelScope.launch {
+            _isFirebaseSyncing.value = true
+            val result = firebaseCloudSyncRepository.pushPlaylists(_playlists.value)
+            _isFirebaseSyncing.value = false
+            if (result.isSuccess) {
+                _firebaseSyncMessage.value = "Successfully backed up ${_playlists.value.size} playlists to Firestore!"
+                cloudSyncManager.pushToCloud(_playlists.value)
+            } else {
+                _firebaseSyncMessage.value = "Firestore backup failed: ${result.exceptionOrNull()?.message}"
+            }
+        }
+    }
+
+    fun pullPlaylistsFromFirebase() {
+        viewModelScope.launch {
+            _isFirebaseSyncing.value = true
+            val result = firebaseCloudSyncRepository.pullPlaylists()
+            _isFirebaseSyncing.value = false
+            if (result.isSuccess) {
+                val remotePlaylists = result.getOrNull().orEmpty()
+                if (remotePlaylists.isNotEmpty()) {
+                    val merged = _playlists.value.toMutableList()
+                    remotePlaylists.forEach { pl ->
+                        if (merged.none { it.id == pl.id }) {
+                            merged.add(pl)
+                        }
+                    }
+                    _playlists.value = merged
+                    val allTr = _allTracks.value.toMutableList()
+                    remotePlaylists.flatMap { it.tracks }.forEach { tr ->
+                        if (allTr.none { it.id == tr.id }) {
+                            allTr.add(tr)
+                        }
+                    }
+                    _allTracks.value = allTr
+                    _firebaseSyncMessage.value = "Restored ${remotePlaylists.size} playlists from Firestore!"
+                } else {
+                    _firebaseSyncMessage.value = "No remote playlists found in cloud. Try backing up first."
+                }
+            } else {
+                _firebaseSyncMessage.value = "Firestore restore failed: ${result.exceptionOrNull()?.message}"
+            }
+        }
     }
 
     override fun onCleared() {

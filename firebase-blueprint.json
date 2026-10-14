@@ -1,0 +1,140 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile document",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "User email address"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User display name"
+        },
+        "photoUrl": {
+          "type": "string",
+          "description": "User profile avatar URL"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Account sync creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last updated timestamp"
+        }
+      },
+      "required": ["email", "updatedAt"]
+    },
+    "CloudPlaylist": {
+      "title": "CloudPlaylist",
+      "description": "User synchronized playlist",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique playlist ID"
+        },
+        "name": {
+          "type": "string",
+          "description": "Playlist name"
+        },
+        "description": {
+          "type": "string",
+          "description": "Playlist description"
+        },
+        "tracksCount": {
+          "type": "integer",
+          "description": "Number of tracks in playlist"
+        },
+        "totalDurationMs": {
+          "type": "integer",
+          "description": "Total duration in milliseconds"
+        },
+        "tracksJson": {
+          "type": "string",
+          "description": "Serialized track metadata list"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user ID"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last modified timestamp"
+        }
+      },
+      "required": ["id", "name", "userId", "updatedAt"]
+    },
+    "CustomPreset": {
+      "title": "CustomPreset",
+      "description": "Custom sound profile and equalizer preset",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Preset ID"
+        },
+        "name": {
+          "type": "string",
+          "description": "Preset display name"
+        },
+        "bandGains": {
+          "type": "array",
+          "description": "Equalizer band gains in dB"
+        },
+        "bassBoost": {
+          "type": "number",
+          "description": "Bass boost level 0-1"
+        },
+        "virtualizer3D": {
+          "type": "number",
+          "description": "3D virtualizer level 0-1"
+        },
+        "reverbRoom": {
+          "type": "string",
+          "description": "Reverb room preset enum"
+        },
+        "loFiPreset": {
+          "type": "string",
+          "description": "Vintage lo-fi tone preset"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user ID"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last modified timestamp"
+        }
+      },
+      "required": ["id", "name", "userId", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/UserProfile"
+      },
+      "description": "User profile document"
+    },
+    "/users/{userId}/playlists/{playlistId}": {
+      "schema": {
+        "$ref": "#/entities/CloudPlaylist"
+      },
+      "description": "User saved cloud playlists"
+    },
+    "/users/{userId}/presets/{presetId}": {
+      "schema": {
+        "$ref": "#/entities/CustomPreset"
+      },
+      "description": "User saved custom equalizer presets"
+    }
+  }
+}
